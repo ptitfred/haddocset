@@ -1,10 +1,10 @@
-resolver: lts-18.28
+resolver: lts-19.28
 packages:
   - '.'
 
 
 extra-deps:
-- haddock-api-2.24.2
+- haddock-api-2.25.1
 
 
 

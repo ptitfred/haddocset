@@ -62,8 +62,14 @@ import           Distribution.Text                 (display, parse)
 import           Distribution.Text                 (display, simpleParse)
 #endif
 import           Documentation.Haddock
+#if __GLASGOW_HASKELL__ >= 900
+import qualified GHC.Unit as Ghc
+import qualified GHC.Unit.Types as Ghc
+import qualified GHC.Types.Name as Ghc
+#else
 import qualified Module                            as Ghc
 import qualified Name                              as Ghc
+#endif
 
 import           Data.Conduit
 import           Data.Conduit.Filesystem (sourceDirectoryDeep)
@@ -132,7 +138,9 @@ readDocInfoFile pifile = doesDirectoryExist pifile >>= \isDir ->
 #endif
             Left _     -> return Nothing
             Right (InterfaceFile _ (intf:_)) -> do
-#if __GLASGOW_HASKELL__ >= 810
+#if __GLASGOW_HASKELL__ >= 900
+                let rPkg = simpleParse . Ghc.unitIdString . Ghc.toUnitId . Ghc.moduleUnit $ instMod intf :: Maybe PackageId
+#elif __GLASGOW_HASKELL__ >= 810
                 let rPkg = simpleParse . Ghc.unitIdString . Ghc.moduleUnitId $ instMod intf :: Maybe PackageId
 #elif __GLASGOW_HASKELL__ >= 800
                 let rPkg = readP_to_S parse . Ghc.unitIdString . Ghc.moduleUnitId $ instMod intf :: [(PackageId, String)]
@@ -144,7 +152,7 @@ readDocInfoFile pifile = doesDirectoryExist pifile >>= \isDir ->
                 case rPkg of
 #if __GLASGOW_HASKELL__ >= 810
                     Nothing -> return Nothing
-                    Just pkg -> 
+                    Just pkg ->
                         return . Just $ DocInfo pkg hs [collapse pifile] True
 #else
                     []  -> return Nothing
@@ -229,7 +237,7 @@ copyHtml doc dst = do
     addAnchor tag = [tag]
 
     packageIdToUrl :: PackageId -> T.Text
-    packageIdToUrl (PackageIdentifier n v) = T.pack $ 
+    packageIdToUrl (PackageIdentifier n v) = T.pack $
       "https://hackage.haskell.org/package/" ++ unPackageName n ++ "-" ++ prettyShow v ++ "/docs/"
 
     unescape [] = Just []
